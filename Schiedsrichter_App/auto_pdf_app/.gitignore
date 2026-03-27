@@ -1,0 +1,8 @@
+__pycache__/
+chrome_profile/
+output/
+*.pyc
+credentials.ini
+profiles.json
+settings.json
+output_preview.png
