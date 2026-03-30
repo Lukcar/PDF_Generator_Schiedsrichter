@@ -1,6 +1,7 @@
-FROM python:3.12-slim
+ARG BUILD_FROM
+FROM $BUILD_FROM
 
-ARG BUILD_ARCH=unknown
+ARG BUILD_ARCH
 ARG BUILD_VERSION=dev
 
 LABEL \
@@ -15,17 +16,15 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
   PORT=5000 \
   CHROME_BINARY=/usr/bin/chromium
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apk add --no-cache \
     chromium \
     chromium-driver \
-    ca-certificates \
-    fonts-dejavu-core \
-  && rm -rf /var/lib/apt/lists/*
+    font-dejavu
 
 WORKDIR /opt/schiedsrichter_browser
 
 COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip3 install --no-cache-dir -r requirements.txt
 
 COPY app ./app
 COPY run.sh /run.sh
