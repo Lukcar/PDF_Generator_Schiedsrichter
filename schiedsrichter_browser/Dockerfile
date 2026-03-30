@@ -13,13 +13,11 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
   PYTHONUNBUFFERED=1 \
   PIP_NO_CACHE_DIR=1 \
   APP_STORAGE_DIR=/data \
-  PORT=5000 \
-  CHROME_BINARY=/usr/bin/chromium
+  PORT=5000
 
 RUN apk add --no-cache \
     chromium \
-    chromium-driver \
-    font-dejavu
+    chromium-chromedriver
 
 WORKDIR /opt/schiedsrichter_browser
 
