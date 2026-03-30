@@ -1,0 +1,4 @@
+__pycache__/
+app/__pycache__/
+app/static/__pycache__/
+app/templates/__pycache__/

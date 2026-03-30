@@ -1,0 +1,9 @@
+__pycache__/
+chrome_profile/
+output/
+uploads/
+*.pyc
+.secret_key
+credentials.ini
+profiles.json
+settings.json

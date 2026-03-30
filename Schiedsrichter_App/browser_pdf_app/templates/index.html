@@ -1,0 +1,437 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <header class="hero">
+    <div>
+      <p class="eyebrow">Browser-Version fuer Raspberry Pi</p>
+      <h1>Auto PDF Schiedsrichter</h1>
+      <p class="hero-copy">
+        Die App laeuft im Browser, uebernimmt deine bestehende Logik und speichert alle Daten direkt auf dem Raspberry.
+      </p>
+    </div>
+    <div class="hero-stats">
+      <div class="stat-card">
+        <span>{{ upcoming_rows|length }}</span>
+        <small>Neue Spiele</small>
+      </div>
+      <div class="stat-card">
+        <span>{{ past_rows|length }}</span>
+        <small>Alte Spiele</small>
+      </div>
+      <div class="stat-card">
+        <span>{{ profiles|length }}</span>
+        <small>Profile</small>
+      </div>
+    </div>
+  </header>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <section class="flash-stack">
+        {% for category, message in messages %}
+          <div class="flash flash-{{ category }}">{{ message }}</div>
+        {% endfor %}
+      </section>
+    {% endif %}
+  {% endwith %}
+
+  <section class="page-section">
+    <div class="section-heading">
+      <div>
+        <p class="section-label">Setup</p>
+        <h2>Einstellungen und Import</h2>
+      </div>
+      <p class="section-copy">
+        Speichere Zugangsdaten und Dateipfade einmalig auf dem Raspberry. Danach kannst du die App jederzeit im Browser aufrufen.
+      </p>
+    </div>
+
+    <div class="panel-grid two-columns">
+      <section class="panel">
+        <div class="panel-head">
+          <h3>Server-Einstellungen</h3>
+          <span class="panel-tag">bleibt gespeichert</span>
+        </div>
+        <form method="post" action="{{ url_for('save_settings') }}" class="stack-form">
+          <div class="form-grid two-columns">
+            <label>
+              <span>Benutzername</span>
+              <input type="text" name="username" value="{{ username }}">
+            </label>
+            <label>
+              <span>Passwort</span>
+              <input type="password" name="password" value="{{ password }}">
+            </label>
+          </div>
+
+          <div class="form-grid">
+            <label>
+              <span>PDF-Vorlage auf dem Server</span>
+              <input type="text" name="pdf_template" value="{{ settings.get('pdf_template', '') }}">
+            </label>
+            <label>
+              <span>KM-Tabelle auf dem Server</span>
+              <input type="text" name="km_table" value="{{ settings.get('km_table', '') }}">
+            </label>
+            <label>
+              <span>Excel-Fallback auf dem Server</span>
+              <input type="text" name="last_excel" value="{{ settings.get('last_excel', '') }}">
+            </label>
+          </div>
+
+          <div class="form-grid three-columns">
+            <label>
+              <span>Standard KM in EUR/km</span>
+              <input type="text" name="default_km_rate" value="{{ default_km_rate }}">
+            </label>
+            <label>
+              <span>Wochenzuschlag in EUR</span>
+              <input type="text" name="week_bonus_amount" value="{{ week_bonus_amount }}">
+            </label>
+            <label class="checkbox-field">
+              <span>Browser sichtbar fuer Selenium</span>
+              <input type="checkbox" name="show_browser" {% if settings.get('show_browser') %}checked{% endif %}>
+            </label>
+          </div>
+
+          <button type="submit" class="btn btn-primary">Einstellungen speichern</button>
+        </form>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h3>Dateien und Aktionen</h3>
+          <span class="panel-tag">Browser-tauglich</span>
+        </div>
+
+        <div class="stack-blocks">
+          <form method="post" action="{{ url_for('upload_file', setting_key='pdf_template') }}" enctype="multipart/form-data" class="upload-card">
+            <label>
+              <span>Neue PDF-Vorlage hochladen</span>
+              <input type="file" name="uploaded_file" accept=".pdf">
+            </label>
+            <button type="submit" class="btn btn-secondary">PDF-Vorlage speichern</button>
+          </form>
+
+          <form method="post" action="{{ url_for('upload_file', setting_key='km_table') }}" enctype="multipart/form-data" class="upload-card">
+            <label>
+              <span>Neue KM-Tabelle hochladen</span>
+              <input type="file" name="uploaded_file" accept=".xlsx">
+            </label>
+            <button type="submit" class="btn btn-secondary">KM-Tabelle speichern</button>
+          </form>
+
+          <div class="action-row">
+            <form method="post" action="{{ url_for('load_web_appointments') }}" class="inline-form">
+              <button type="submit" class="btn btn-primary">Spielauftraege von hw.it4sport.de laden</button>
+            </form>
+            <form method="post" action="{{ url_for('load_excel_appointments') }}" enctype="multipart/form-data" class="inline-form">
+              <label class="compact-file">
+                <span>Excel hochladen</span>
+                <input type="file" name="excel_file" accept=".xlsx">
+              </label>
+              <button type="submit" class="btn btn-secondary">Excel laden</button>
+            </form>
+          </div>
+
+          <div class="output-list">
+            <div class="mini-head">
+              <h4>Zuletzt erzeugte PDFs</h4>
+            </div>
+            {% if output_files %}
+              <ul>
+                {% for output in output_files %}
+                  <li>
+                    <a href="{{ url_for('download_output', filename=output.name) }}">{{ output.name }}</a>
+                    <small>{{ output.modified }}</small>
+                  </li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <p class="muted">Noch keine PDFs erzeugt.</p>
+            {% endif %}
+          </div>
+        </div>
+      </section>
+    </div>
+  </section>
+
+  <section class="page-section">
+    <div class="section-heading">
+      <div>
+        <p class="section-label">Profile</p>
+        <h2>Schiedsrichter verwalten</h2>
+      </div>
+      <p class="section-copy">
+        Die Profile werden serverseitig gespeichert und stehen spaeter auf jedem Geraet im Browser zur Verfuegung.
+      </p>
+    </div>
+
+    <div class="panel-grid two-columns">
+      <section class="panel">
+        <div class="panel-head">
+          <h3>Gespeicherte Profile</h3>
+          <span class="panel-tag">{{ profiles|length }} Eintraege</span>
+        </div>
+
+        {% if profiles %}
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Startort</th>
+                  <th>Gebuehr</th>
+                  <th>KM</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for name, profile in profiles.items() %}
+                  <tr>
+                    <td>{{ name }}</td>
+                    <td>{{ profile.start_location }}</td>
+                    <td>{{ profile.match_fee }}</td>
+                    <td>{{ profile.km_rate }}</td>
+                    <td class="table-actions">
+                      <a href="{{ url_for('index', edit=name) }}#profile-form" class="text-link">Bearbeiten</a>
+                      <form method="post" action="{{ url_for('delete_profile', profile_name=name) }}">
+                        <button type="submit" class="text-button">Loeschen</button>
+                      </form>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <p class="muted">Noch keine Profile gespeichert.</p>
+        {% endif %}
+      </section>
+
+      <section class="panel" id="profile-form">
+        <div class="panel-head">
+          <h3>{% if editing_profile %}Profil bearbeiten{% else %}Neues Profil{% endif %}</h3>
+          <span class="panel-tag">Formular</span>
+        </div>
+
+        <form method="post" action="{{ url_for('save_profile') }}" class="stack-form">
+          <input type="hidden" name="original_name" value="{{ editing_profile.profile_name if editing_profile else '' }}">
+
+          <div class="form-grid two-columns">
+            <label>
+              <span>Vorname</span>
+              <input type="text" name="first_name" value="{{ editing_profile.first_name if editing_profile else '' }}" required>
+            </label>
+            <label>
+              <span>Nachname</span>
+              <input type="text" name="last_name" value="{{ editing_profile.last_name if editing_profile else '' }}" required>
+            </label>
+          </div>
+
+          <div class="form-grid">
+            <label>
+              <span>PLZ + Ort</span>
+              <input type="text" name="city_zip" value="{{ editing_profile.city_zip if editing_profile else '' }}" required>
+            </label>
+            <label>
+              <span>Strasse</span>
+              <input type="text" name="street" value="{{ editing_profile.street if editing_profile else '' }}" required>
+            </label>
+            <label>
+              <span>Start-Ort</span>
+              <input type="text" name="start_location" list="start-location-options" value="{{ editing_profile.start_location if editing_profile else '' }}" required>
+            </label>
+          </div>
+
+          <div class="form-grid four-columns">
+            <label>
+              <span>Minuten vor Anwurf</span>
+              <input type="number" name="minutes_before" value="{{ editing_profile.minutes_before if editing_profile else 75 }}" required>
+            </label>
+            <label>
+              <span>Minuten nach Spiel</span>
+              <input type="number" name="minutes_after" value="{{ editing_profile.minutes_after if editing_profile else 120 }}" required>
+            </label>
+            <label>
+              <span>Spielleitung in EUR</span>
+              <input type="text" name="match_fee" value="{{ editing_profile.match_fee if editing_profile else 25 }}">
+            </label>
+            <label>
+              <span>KM-Pauschale in EUR/km</span>
+              <input type="text" name="km_rate" value="{{ editing_profile.km_rate if editing_profile else default_km_rate }}">
+            </label>
+          </div>
+
+          <datalist id="start-location-options">
+            {% for location in start_locations %}
+              <option value="{{ location }}"></option>
+            {% endfor %}
+          </datalist>
+
+          <div class="button-row">
+            <button type="submit" class="btn btn-primary">Profil speichern</button>
+            <a href="{{ url_for('index') }}#profile-form" class="btn btn-ghost">Leeres Formular</a>
+          </div>
+        </form>
+      </section>
+    </div>
+  </section>
+
+  <section class="page-section">
+    <div class="section-heading">
+      <div>
+        <p class="section-label">Spielauftraege</p>
+        <h2>PDFs direkt aus dem Browser erzeugen</h2>
+      </div>
+      <p class="section-copy">
+        Pro Spielauftrag kannst du die Profile direkt waehlen und die fertige Reisekostenabrechnung sofort herunterladen.
+      </p>
+    </div>
+
+    {% if not profile_names %}
+      <div class="empty-state">
+        <h3>Profile fehlen noch</h3>
+        <p>Lege zuerst mindestens ein Profil an, damit du PDFs erzeugen kannst.</p>
+      </div>
+    {% endif %}
+
+    <div class="panel-grid two-columns">
+      <section class="panel">
+        <div class="panel-head">
+          <h3>Neue Spiele</h3>
+          <span class="panel-tag">{{ upcoming_rows|length }}</span>
+        </div>
+
+        {% if upcoming_rows %}
+          <div class="match-list">
+            {% for item in upcoming_rows %}
+              <article class="match-card">
+                <div class="match-top">
+                  <span class="pill">{{ item.appointment.date }}</span>
+                  <span class="pill pill-muted">{{ item.appointment.time or "--:--" }}</span>
+                </div>
+                <h4>{{ item.appointment.home_team }} <span>vs</span> {{ item.appointment.away_team }}</h4>
+                <p class="match-line">{{ item.appointment.league or "Ohne Liga" }}</p>
+                <p class="match-line">{{ item.appointment.hall_name or "Keine Halle hinterlegt" }}</p>
+                <p class="match-line">SR: {{ item.referees_text or "-" }}</p>
+
+                <form method="post" action="{{ url_for('generate_pdf') }}" class="stack-form compact-form">
+                  <input type="hidden" name="appointment_index" value="{{ item.index }}">
+
+                  <div class="form-grid two-columns">
+                    <label>
+                      <span>Links</span>
+                      <select name="left_profile" required>
+                        <option value="">Profil waehlen</option>
+                        {% for name in profile_names %}
+                          <option value="{{ name }}" {% if name == item.suggested_left %}selected{% endif %}>{{ name }}</option>
+                        {% endfor %}
+                      </select>
+                    </label>
+                    <label>
+                      <span>Rechts</span>
+                      <select name="right_profile">
+                        <option value="">Kein zweites Profil</option>
+                        {% for name in profile_names %}
+                          <option value="{{ name }}" {% if name == item.suggested_right %}selected{% endif %}>{{ name }}</option>
+                        {% endfor %}
+                      </select>
+                    </label>
+                  </div>
+
+                  <div class="form-grid three-columns">
+                    <label>
+                      <span>Wochenzuschlag in EUR</span>
+                      <input type="text" name="week_bonus_amount" value="{{ week_bonus_amount }}">
+                    </label>
+                    <label class="checkbox-field">
+                      <span>Zuschlag links</span>
+                      <input type="checkbox" name="left_week_bonus">
+                    </label>
+                    <label class="checkbox-field">
+                      <span>Zuschlag rechts</span>
+                      <input type="checkbox" name="right_week_bonus">
+                    </label>
+                  </div>
+
+                  <button type="submit" class="btn btn-primary" {% if not profile_names %}disabled{% endif %}>PDF erzeugen</button>
+                </form>
+              </article>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="muted">Noch keine neuen Spiele geladen.</p>
+        {% endif %}
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h3>Alte Spiele</h3>
+          <span class="panel-tag">{{ past_rows|length }}</span>
+        </div>
+
+        {% if past_rows %}
+          <div class="match-list">
+            {% for item in past_rows %}
+              <article class="match-card past-card">
+                <div class="match-top">
+                  <span class="pill">{{ item.appointment.date }}</span>
+                  <span class="pill pill-muted">{{ item.appointment.time or "--:--" }}</span>
+                </div>
+                <h4>{{ item.appointment.home_team }} <span>vs</span> {{ item.appointment.away_team }}</h4>
+                <p class="match-line">{{ item.appointment.league or "Ohne Liga" }}</p>
+                <p class="match-line">{{ item.appointment.hall_name or "Keine Halle hinterlegt" }}</p>
+                <p class="match-line">SR: {{ item.referees_text or "-" }}</p>
+
+                <form method="post" action="{{ url_for('generate_pdf') }}" class="stack-form compact-form">
+                  <input type="hidden" name="appointment_index" value="{{ item.index }}">
+
+                  <div class="form-grid two-columns">
+                    <label>
+                      <span>Links</span>
+                      <select name="left_profile" required>
+                        <option value="">Profil waehlen</option>
+                        {% for name in profile_names %}
+                          <option value="{{ name }}" {% if name == item.suggested_left %}selected{% endif %}>{{ name }}</option>
+                        {% endfor %}
+                      </select>
+                    </label>
+                    <label>
+                      <span>Rechts</span>
+                      <select name="right_profile">
+                        <option value="">Kein zweites Profil</option>
+                        {% for name in profile_names %}
+                          <option value="{{ name }}" {% if name == item.suggested_right %}selected{% endif %}>{{ name }}</option>
+                        {% endfor %}
+                      </select>
+                    </label>
+                  </div>
+
+                  <div class="form-grid three-columns">
+                    <label>
+                      <span>Wochenzuschlag in EUR</span>
+                      <input type="text" name="week_bonus_amount" value="{{ week_bonus_amount }}">
+                    </label>
+                    <label class="checkbox-field">
+                      <span>Zuschlag links</span>
+                      <input type="checkbox" name="left_week_bonus">
+                    </label>
+                    <label class="checkbox-field">
+                      <span>Zuschlag rechts</span>
+                      <input type="checkbox" name="right_week_bonus">
+                    </label>
+                  </div>
+
+                  <button type="submit" class="btn btn-secondary" {% if not profile_names %}disabled{% endif %}>PDF erzeugen</button>
+                </form>
+              </article>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="muted">Noch keine alten Spiele geladen.</p>
+        {% endif %}
+      </section>
+    </div>
+  </section>
+{% endblock %}

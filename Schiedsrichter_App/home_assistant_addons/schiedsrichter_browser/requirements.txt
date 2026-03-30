@@ -1,0 +1,6 @@
+flask
+pandas
+openpyxl
+pypdf
+reportlab
+selenium
