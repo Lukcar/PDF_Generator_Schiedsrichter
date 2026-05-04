@@ -9,7 +9,11 @@ import zipfile
 
 
 APP_EXE_NAME = "AutoPDF_Schiedsrichter"
-PACKAGE_NAME = "AutoPDF_Schiedsrichter_Windows"
+PACKAGE_NAME = "AutoPDF_Schiedsrichter_Standalone_Windows"
+RELEASE_FOLDER_NAME = "release_auto_pdf_standalone"
+PYINSTALLER_BUILD_DIR_NAME = "pyinstaller_build_auto_pdf"
+PYINSTALLER_DIST_DIR_NAME = "pyinstaller_dist_auto_pdf"
+PYINSTALLER_SPEC_DIR_NAME = "pyinstaller_spec_auto_pdf"
 ASSETS = [
     "Schiedsrichter-Reisekostenabrechnung.pdf",
     "Km-Tabelle.xlsx",
@@ -23,10 +27,10 @@ def write_text(path: Path, content: str) -> None:
 def build_release() -> tuple[Path, Path]:
     app_dir = Path(__file__).resolve().parent
     project_dir = app_dir.parent
-    release_root = project_dir / "release"
-    pyinstaller_build = release_root / "pyinstaller_build"
-    pyinstaller_dist = release_root / "pyinstaller_dist"
-    pyinstaller_spec = release_root / "pyinstaller_spec"
+    release_root = project_dir / RELEASE_FOLDER_NAME
+    pyinstaller_build = release_root / PYINSTALLER_BUILD_DIR_NAME
+    pyinstaller_dist = release_root / PYINSTALLER_DIST_DIR_NAME
+    pyinstaller_spec = release_root / PYINSTALLER_SPEC_DIR_NAME
     staging_root = release_root / PACKAGE_NAME
     zip_path = release_root / f"{PACKAGE_NAME}.zip"
 
