@@ -9,7 +9,7 @@ import zipfile
 
 
 APP_EXE_NAME = "AutoPDF_Schiedsrichter"
-PACKAGE_NAME = "AutoPDF_Schiedsrichter_Standalone_Windows"
+PACKAGE_NAME = "AutoPDF_Schiedsrichter_Standalone_Windows_v2"
 RELEASE_FOLDER_NAME = "release_auto_pdf_standalone"
 PYINSTALLER_BUILD_DIR_NAME = "pyinstaller_build_auto_pdf"
 PYINSTALLER_DIST_DIR_NAME = "pyinstaller_dist_auto_pdf"

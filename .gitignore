@@ -1,2 +1,3 @@
 Schiedsrichter_App/release/
-Schiedsrichter_App/release_auto_pdf_standalone/
+Schiedsrichter_App/release_auto_pdf_standalone/*
+!Schiedsrichter_App/release_auto_pdf_standalone/*.zip
